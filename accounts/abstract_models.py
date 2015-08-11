@@ -74,10 +74,10 @@ class Account(models.Model):
     #
     # As a rule of thumb, you don't normally need to use both primary_user and
     # secondary_users within the same project - just one or the other.
-    primary_user = models.ForeignKey('auth.User', related_name="accounts",
+    primary_user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="accounts",
                                      null=True, blank=True,
                                      on_delete=models.SET_NULL)
-    secondary_users = models.ManyToManyField('auth.User', blank=True)
+    secondary_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True)
 
     # Track the status of a account - this is often used so that expired
     # account can have their money transferred back to some parent account and
@@ -349,7 +349,7 @@ class Transfer(models.Model):
     # We record who the user was who authorised this transaction.  As
     # transactions should never be deleted, we allow this field to be null and
     # also record some audit information.
-    user = models.ForeignKey('auth.User', related_name="transfers",
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="transfers",
                              null=True, on_delete=models.SET_NULL)
     username = models.CharField(max_length=128)
 
