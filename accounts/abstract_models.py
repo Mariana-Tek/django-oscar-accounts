@@ -15,9 +15,9 @@ from accounts import exceptions
 
 class ActiveAccountManager(models.Manager):
 
-    def get_query_set(self):
+    def get_queryset(self):
         now = timezone.now()
-        qs = super(ActiveAccountManager, self).get_query_set()
+        qs = super(ActiveAccountManager, self).get_queryset()
         return qs.filter(
             models.Q(start_date__lte=now) |
             models.Q(start_date=None)).filter(
@@ -27,9 +27,9 @@ class ActiveAccountManager(models.Manager):
 
 class ExpiredAccountManager(models.Manager):
 
-    def get_query_set(self):
+    def get_queryset(self):
         now = timezone.now()
-        qs = super(ExpiredAccountManager, self).get_query_set()
+        qs = super(ExpiredAccountManager, self).get_queryset()
         return qs.filter(end_date__lt=now)
 
 
@@ -260,6 +260,26 @@ class Account(models.Model):
             data['end_date'] = self.end_date.isoformat()
         return data
 
+    def can_be_authorised_by(self, user=None):
+        """
+        Test whether the passed user can authorise a transfer from this account
+
+        This is modified to be more flexible, in that it checks primary, secondary, and admin
+        """
+        # if user is None:
+        #     return True
+
+        if self.primary_user and user == self.primary_user:
+            return True
+
+        secondary_users = self.secondary_users.all()
+        if secondary_users.count() > 0:
+            if user in secondary_users:
+                return True
+
+        if user.has_perm('reservation_core.is_admin_reservation_broker'):
+            return True
+
 
 class PostingManager(models.Manager):
     """
@@ -273,8 +293,8 @@ class PostingManager(models.Manager):
         # Write out transfer (which involves multiple writes).  We use a
         # database transaction to ensure that all get written out correctly.
         self.verify_transfer(source, destination, amount, user)
-        with transaction.commit_on_success():
-            transfer = self.get_query_set().create(
+        with transaction.atomic():
+            transfer = self.get_queryset().create(
                 source=source,
                 destination=destination,
                 amount=amount,

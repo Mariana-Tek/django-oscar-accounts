@@ -3,9 +3,9 @@ from django.utils.translation import ugettext_lazy as _
 from oscar.apps.payment.exceptions import UnableToTakePayment
 
 from accounts import facade, exceptions, core, codes
+from accounts.models import Account, Transfer
 
-Account = get_model('accounts', 'Account')
-Transfer = get_model('accounts', 'Transfer')
+from jsonapi_response.errors import JSONAPIException
 
 
 def user_accounts(user):
@@ -17,6 +17,9 @@ def user_accounts(user):
 
 def redeem(order_number, user, allocations):
     """
+    Is a variation of accounts.checkout.gateway.redeem, which uses pk instead of code in allocations.
+    Also validates that the type is 6 :: deferred
+
     Settle payment for the passed set of account allocations
 
     Will raise UnableToTakePayment if any of the transfers is invalid
@@ -26,19 +29,28 @@ def redeem(order_number, user, allocations):
     # session.
     transfers = []
     destination = core.redemptions_account()
-    for code, amount in allocations.items():
+
+    for id, amount in allocations.items():
         try:
-            account = Account.active.get(code=code)
+            account = Account.active.get(pk=id)
         except Account.DoesNotExist:
-            raise UnableToTakePayment(
-                _("No active account found with code %s") % code)
+            raise JSONAPIException(status='422', code='ACCOUNT_REDEMPTION_DNE',
+                                   title='Account Does Not Exist',
+                                   detail="Account "+str(id)+" does not exist")
+
+        if account.account_type.id != 6:
+            raise JSONAPIException(status='422', code='ACCOUNT_REDEMPTION_MISTYPE',
+                                   title='Account Type Is Invalid',
+                                   detail="Account "+str(id)+" is not a valid type for redemption")
 
         # We verify each transaction
         try:
             Transfer.objects.verify_transfer(
                 account, destination, amount, user)
-        except exceptions.AccountException, e:
-            raise UnableToTakePayment(str(e))
+        except exceptions.AccountException as e:
+            raise JSONAPIException(status='422', code='ACCOUNT_REDEMPTION_FAIL',
+                                   title='Account Redemption Failed',
+                                   detail="Account redemption failed: "+str(e))
 
         transfers.append((account, destination, amount))
 
