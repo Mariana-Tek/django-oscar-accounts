@@ -1,11 +1,6 @@
-import logging
-
 from django.db.models import get_model
-
 from accounts import exceptions, core
-
-Account = get_model('accounts', 'Account')
-Transfer = get_model('accounts', 'Transfer')
+import logging
 
 logger = logging.getLogger('accounts')
 

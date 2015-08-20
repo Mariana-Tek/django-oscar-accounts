@@ -12,6 +12,8 @@ from treebeard.mp_tree import MP_Node
 
 from accounts import exceptions
 
+from revenue_core.models import DeferredRevenueEdge
+
 
 class ActiveAccountManager(models.Manager):
 

@@ -6,6 +6,7 @@ from accounts import facade, exceptions, core, codes
 from accounts.models import Account, Transfer
 
 from jsonapi_response.errors import JSONAPIException
+from revenue_core.models import DeferredRevenueEdge
 
 
 def user_accounts(user):
