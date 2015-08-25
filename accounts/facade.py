@@ -1,5 +1,5 @@
-from django.db.models import get_model
 from accounts import exceptions, core
+from accounts.models import Account, Transfer
 import logging
 
 logger = logging.getLogger('accounts')
