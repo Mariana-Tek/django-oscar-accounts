@@ -274,10 +274,13 @@ class Account(models.Model):
         if self.primary_user and user == self.primary_user:
             return True
 
-        secondary_users = self.secondary_users.all()
-        if secondary_users.count() > 0:
+        if self.secondary_users.count():
             if user in secondary_users:
                 return True
+
+        if not self.primary_user and not secondary_users.count():
+            return True
+
 
         if user.has_perm('reservation_core.is_admin_reservation_broker'):
             return True
